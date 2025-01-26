@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management System</title>
+    <link rel="stylesheet" href="inventory-styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body>
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">Loading...</div>
+    </div>
+    <script>
+        if (!localStorage.getItem('authenticated')) {
+            window.location.href = 'login.html';
+        }
+
+        function exitProgram() {
+            localStorage.removeItem('authenticated');
+            localStorage.removeItem('username');
+            localStorage.removeItem('role');
+            window.location.href = 'login.html';
+        }
+    </script>
+
+    <div id="sidebar">
+        <div id="main-logo">
+            <img src="pic.jpg" alt="Logo">
+        </div>
+        <button onclick="toggleTab('dashboard')" class="small-button"><i class="fas fa-tachometer-alt"></i> Dashboard</button>
+        <div class="dropdown">
+            <button onclick="toggleDropdown('storage')" class="small-button" id="storage-tab"><i class="fas fa-warehouse"></i> Storage</button>
+            <div id="storageDropdown" class="dropdown-content">
+                <button onclick="toggleTab('newItemInputs')" class="small-button"><i class="fas fa-plus"></i> Enter a New Item</button>
+                <button onclick="toggleTab('searchCategoryInputs')" class="small-button"><i class="fas fa-search"></i> Search by Category</button>
+                <button onclick="displayItem()" class="small-button"><i class="fas fa-list"></i> Display Current Content</button>
+            </div>
+        </div>
+
+        <button onclick="toggleTab('sales')" class="small-button"><i class="fas fa-chart-line"></i> Sales</button>
+        <button onclick="toggleTab('purchases')" class="small-button"><i class="fas fa-shopping-cart"></i> Purchases</button>
+        <button onclick="toggleTab('predict')" class="small-button"><i class="fas fa-chart-pie"></i> Predict</button>
+        <button onclick="saveItems()" class="small-button"><i class="fas fa-save"></i> Save to File</button>
+        <button onclick="loadItems()" class="small-button"><i class="fas fa-upload"></i> Load from File</button>
+        <button onclick="exitProgram()" class="small-button"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+
+    <div id="main-content">
+        <header>
+            <h1>Inventory Management System</h1>
+        </header>
+
+        <main>
+            <div id="newItemInputs" class="tab-content">
+                <label for="newItemDate">Date:</label>
+                <input type="date" id="newItemDate" placeholder="Enter date">
+                <label for="newItemStoreID">Store ID:</label>
+                <input type="text" id="newItemStoreID" placeholder="Enter store ID">
+                <label for="newItemProductID">Product ID:</label>
+                <input type="text" id="newItemProductID" placeholder="Enter product ID">
+                <label for="newItemCategory">Category:</label>
+                <input type="text" id="newItemCategory" placeholder="Enter category">
+                <label for="newItemInventoryLevel">Inventory Level:</label>
+                <input type="text" id="newItemInventoryLevel" placeholder="Enter inventory level">
+                <label for="newItemUnitsSold">Units Sold:</label>
+                <input type="text" id="newItemUnitsSold" placeholder="Enter units sold">
+                <label for="newItemUnitsOrdered">Units Ordered:</label>
+                <input type="text" id="newItemUnitsOrdered" placeholder="Enter units ordered">
+                <label for="newItemPrice">Price:</label>
+                <input type="text" id="newItemPrice" placeholder="Enter price">
+                <label for="newItemSeasonality">Seasonality:</label>
+                <input type="text" id="newItemSeasonality" placeholder="Enter seasonality">
+                <button onclick="addItem()" class="medium-button">Enter a New Item</button>
+            </div>
+
+            <div id="searchCategoryInputs" class="tab-content">
+                <label for="searchCategory">Search by Category:</label>
+                <select id="searchCategory">
+                    <option value="">Select Category</option>
+                </select>
+                <button onclick="searchItems()" class="medium-button">Search by Category</button>
+            </div>
+
+            <div id="editItemInputs" class="tab-content">
+                <label for="editItemDate">Date:</label>
+                <input type="date" id="editItemDate" placeholder="Enter date">
+                <label for="editItemStoreID">Store ID:</label>
+                <input type="text" id="editItemStoreID" placeholder="Enter store ID">
+                <label for="editItemProductID">Product ID:</label>
+                <input type="text" id="editItemProductID" placeholder="Enter product ID">
+                <label for="editItemCategory">Category:</label>
+                <input type="text" id="editItemCategory" placeholder="Enter category">
+                <label for="editItemInventoryLevel">Inventory Level:</label>
+                <input type="text" id="editItemInventoryLevel" placeholder="Enter inventory level">
+                <label for="editItemUnitsSold">Units Sold:</label>
+                <input type="text" id="editItemUnitsSold" placeholder="Enter units sold">
+                <label for="editItemUnitsOrdered">Units Ordered:</label>
+                <input type="text" id="editItemUnitsOrdered" placeholder="Enter units ordered">
+                <label for="editItemPrice">Price:</label>
+                <input type="text" id="editItemPrice" placeholder="Enter price">
+                <label for="editItemSeasonality">Seasonality:</label>
+                <input type="text" id="editItemSeasonality" placeholder="Enter seasonality">
+                <button id="updateItemButton" class="medium-button">Update Item</button>
+            </div>
+
+            <div id="deleteItemInputs" class="tab-content">
+                <label for="deleteItemProductID">Product ID:</label>
+                <input type="text" id="deleteItemProductID" placeholder="Enter product ID">
+                <button onclick="deleteItem()" class="medium-button">Delete Item</button>
+            </div>
+
+            <div id="dashboard" class="tab-content">
+                <h2>Dashboard Overview</h2>
+                <div id="stats" class="dashboard-stats">
+                    <div class="stat-card">
+                        <h3>Total Products</h3>
+                        <span id="totalItems"></span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Sales</h3>
+                        <span id="totalSalesValue"></span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Purchases</h3>
+                        <span id="totalStockValue"></span>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-card">
+                        <h3>Inventory Status</h3>
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Revenue Analysis</h3>
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Store Performance</h3>
+                        <canvas id="storePerformanceChart"></canvas>
+                        <div class="performance-metrics">
+                            <div id="topMetrics"></div>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Category Trends by Store</h3>
+                        <select id="storeTrendSelect">
+                            <option value="">Select Store</option>
+                        </select>
+                        <canvas id="categoryTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sales" class="tab-content">
+                <h2>Sales Management</h2>
+                
+                <div class="filter-section">
+                    <label for="salesStoreSelect">Store:</label>
+                    <select id="salesStoreSelect">
+                        <option value="">All Stores</option>
+                    </select>
+                    
+                    <label for="salesProductSelect">Product:</label>
+                    <select id="salesProductSelect">
+                        <option value="">All Products</option>
+                    </select>
+                    
+                    <label for="salesCategorySelect">Category:</label>
+                    <select id="salesCategorySelect">
+                        <option value="">All Categories</option>
+                    </select>
+                    
+                    <label for="salesDateRange">Date Range:</label>
+                    <input type="date" id="salesStartDate">
+                    <input type="date" id="salesEndDate">
+                    
+                    <button onclick="filterSales()" class="medium-button">Apply Filters</button>
+                </div>
+            
+                <div class="sales-actions">
+                    <button onclick="toggleTab('addSales')" class="medium-button">Add Sale</button>
+                    <button onclick="sortSales('date')" class="medium-button">Sort by Date</button>
+                    <button onclick="sortSales('quantity')" class="medium-button">Sort by Quantity</button>
+                    <button onclick="sortSales('value')" class="medium-button">Sort by Value</button>
+                </div>
+            
+                <div id="salesTableContainer">
+                    <table id="salesTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Store ID</th>
+                                <th>Product ID</th>
+                                <th>Category</th>
+                                <th>Units Sold</th>
+                                <th>Price per Unit</th>
+                                <th>Total Value</th>
+                                <th>Inventory After Sale</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="addSales" class="tab-content">
+                <h2>Add Sales</h2>
+                <div class="input-group">
+                    <label for="addSalesStore">Store:</label>
+                    <select id="addSalesStore" required>
+                        <option value="">Select Store</option>
+                    </select>
+
+                    <label for="addSalesProduct">Product:</label>
+                    <select id="addSalesProduct" required disabled>
+                        <option value="">Select Product</option>
+                    </select>
+
+                    <label for="addSalesCategory">Category:</label>
+                    <select id="addSalesCategory" required disabled>
+                        <option value="">Select Category</option>
+                    </select>
+
+                    <label for="addSalesQuantity">Quantity:</label>
+                    <input type="number" id="addSalesQuantity" min="1" required>
+
+                    <div class="preview-actions" style="display: none;">
+                        <button onclick="confirmSale()" class="medium-button success-button">Confirm Sale</button>
+                        <button onclick="cancelSale()" class="medium-button cancel-button">Cancel</button>
+                    </div>
+                    <button onclick="previewSale()" id="previewSaleButton" class="medium-button">Preview Sale</button>
+                </div>
+                <div id="salePreview" class="preview-container">
+                    <h3>Sale Preview</h3>
+                    <p id="saleDetails"></p>
+                    <div id="saleImpact" class="impact-details"></div>
+                </div>
+            </div>
+
+            <div id="purchases" class="tab-content">
+                <h2>Purchase Management</h2>
+                
+                <div class="filter-section">
+                    <label for="purchaseStoreSelect">Store:</label>
+                    <select id="purchaseStoreSelect">
+                        <option value="">All Stores</option>
+                    </select>
+                    
+                    <label for="purchaseProductSelect">Product:</label>
+                    <select id="purchaseProductSelect">
+                        <option value="">All Products</option>
+                    </select>
+                    
+                    <label for="purchaseCategorySelect">Category:</label>
+                    <select id="purchaseCategorySelect">
+                        <option value="">All Categories</option>
+                    </select>
+                    
+                    <label for="purchaseDateRange">Date Range:</label>
+                    <input type="date" id="purchaseStartDate">
+                    <input type="date" id="purchaseEndDate">
+                    
+                    <button onclick="filterPurchases()" class="medium-button">Apply Filters</button>
+                </div>
+            
+                <div class="purchase-actions">
+                    <button onclick="toggleTab('addPurchase')" class="medium-button">Add Purchase</button>
+                    <button onclick="sortPurchases('date')" class="medium-button">Sort by Date</button>
+                    <button onclick="sortPurchases('quantity')" class="medium-button">Sort by Quantity</button>
+                    <button onclick="sortPurchases('value')" class="medium-button">Sort by Value</button>
+                </div>
+            
+                <div id="purchasesTableContainer">
+                    <table id="purchasesTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Store ID</th>
+                                <th>Product ID</th>
+                                <th>Category</th>
+                                <th>Units Ordered</th>
+                                <th>Price per Unit</th>
+                                <th>Total Value</th>
+                                <th>Inventory After Purchase</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="addPurchase" class="tab-content">
+                <h2>Add Purchase</h2>
+                <div class="input-group">
+                    <label for="addPurchaseStore">Store:</label>
+                    <select id="addPurchaseStore" required>
+                        <option value="">Select Store</option>
+                    </select>
+
+                    <label for="addPurchaseProduct">Product:</label>
+                    <select id="addPurchaseProduct" required disabled>
+                        <option value="">Select Product</option>
+                    </select>
+
+                    <label for="addPurchaseCategory">Category:</label>
+                    <select id="addPurchaseCategory" required disabled>
+                        <option value="">Select Category</option>
+                    </select>
+
+                    <label for="addPurchaseQuantity">Quantity:</label>
+                    <input type="number" id="addPurchaseQuantity" min="1" required>
+
+                    <div class="preview-actions" style="display: none;">
+                        <button onclick="confirmPurchase()" class="medium-button success-button">Confirm Purchase</button>
+                        <button onclick="cancelPurchase()" class="medium-button cancel-button">Cancel</button>
+                    </div>
+                    <button onclick="previewPurchase()" id="previewPurchaseButton" class="medium-button">Preview Purchase</button>
+                </div>
+                <div id="purchasePreview" class="preview-container">
+                    <h3>Purchase Preview</h3>
+                    <p id="purchaseDetails"></p>
+                    <div id="purchaseImpact" class="impact-details"></div>
+                </div>
+            </div>
+
+            <div id="predict" class="tab-content">
+                <div class="predict-container">
+                    <div class="predict-section" id="restockPredictionSection">
+                        <h2>Restock Prediction</h2>
+                        <div class="input-group">
+                            <label for="restockStore">Store:</label>
+                            <select id="restockStore">
+                                <option value="">All Stores</option>
+                            </select>
+                            <label for="restockCategory">Category:</label>
+                            <select id="restockCategory">
+                                <option value="">All Categories</option>
+                            </select>
+                            <label for="restockProduct">Product:</label>
+                            <select id="restockProduct">
+                                <option value="">All Products</option>
+                            </select>
+                            <label for="restockThreshold">Minimum Stock Threshold:</label>
+                            <input type="number" id="restockThreshold" value="100" min="0">
+                            <button onclick="predictRestock()" class="predict-button">Generate Restock Predictions</button>
+                        </div>
+                        <div id="restockResults" class="results-container"></div>
+                    </div>
+                    <div class="predict-section" id="demandPredictionSection">
+                        <h2>Demand Forecast</h2>
+                        <div class="input-group">
+                            <label for="forecastStore">Store:</label>
+                            <select id="forecastStore">
+                                <option value="">All Stores</option>
+                            </select>
+
+                            <label for="forecastCategory">Category:</label>
+                            <select id="forecastCategory">
+                                <option value="">All Categories</option>
+                            </select>
+
+                            <label for="forecastProduct">Product:</label>
+                            <select id="forecastProduct">
+                                <option value="">All Products</option>
+                            </select>
+
+                            <label for="forecastPeriod">Forecast Period (Days):</label>
+                            <input type="number" id="forecastPeriod" min="1" max="90" value="7">
+
+                            <button onclick="predictDemand()" class="predict-button">Generate Demand Forecast</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pagination">
+                <button onclick="prevPage()" class="pagination-button">Previous Page</button>
+                <span id="currentPage">Page 1</span>
+                <button onclick="nextPage()" class="pagination-button">Next Page</button>
+            </div>
+            <table id="inventoryTable">
+                <thead>
+                    <tr>
+                        <th>SNO</th>
+                        <th>Store ID</th>
+                        <th>Category</th>
+                        <th>Product ID</th>
+                        <th>Current Inventory</th>
+                        <th>Price</th>
+                        <th>Last Sale Date</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryTableBody"></tbody>
+            </table>
+
+            <!-- Add this new table for search results -->
+            <table id="searchResultsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>SNO</th>
+                        <th>Date</th>
+                        <th>Store ID</th>
+                        <th>Product ID</th>
+                        <th>Category</th>
+                        <th>Inventory Level</th>
+                        <th>Units Sold</th>
+                        <th>Units Ordered</th>
+                        <th>Price</th>
+                        <th>Seasonality</th>
+                    </tr>
+                </thead>
+                <tbody id="searchResultsBody"></tbody>
+            </table>
+        </main>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="inventory-script.js"></script>
+</body>
+
+</html>

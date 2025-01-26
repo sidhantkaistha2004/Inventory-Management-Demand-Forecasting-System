@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Results</title>
+    <link rel="stylesheet" href="inventory-styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="main-content">
+        <header>
+            <h1>Prediction Results</h1>
+            <button onclick="window.close()" class="medium-button">Close</button>
+        </header>
+        <div id="results-container">
+            <div id="chart-container" style="height: 400px; margin-bottom: 20px;">
+                <canvas id="predictionChart"></canvas>
+            </div>
+            <div id="table-container"></div>
+        </div>
+    </div>
+    <script>
+        window.onload = function() {
+            const data = JSON.parse(localStorage.getItem('predictionData'));
+            const type = localStorage.getItem('predictType');
+            
+            if (data && type) {
+                if (type === 'demand') {
+                    displayDemandPredictions(data);
+                } else if (type === 'restock') {
+                    displayRestockPredictions(data);
+                }
+            }
+        };
+
+        function displayRestockPredictions(data) {
+            document.getElementById('chart-container').style.display = 'none';
+            document.getElementById('table-container').innerHTML = `
+                <table class="predictions-table">
+                    <thead>
+                        <tr>
+                            <th>Store</th>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Current Stock</th>
+                            <th>Days Until Restock</th>
+                            <th>Restock Date</th>
+                            <th>Suggested Order</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(p => `
+                            <tr>
+                                <td>${p.storeId}</td>
+                                <td>${p.productId}</td>
+                                <td>${p.category}</td>
+                                <td>${p.currentStock}</td>
+                                <td>${p.daysUntilRestock}</td>
+                                <td>${p.restockDate}</td>
+                                <td>${p.suggestedOrder}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <button onclick="confirmRestock()" class="medium-button">Confirm All Restocks</button>
+            `;
+        }
+
+        function confirmRestock() {
+            const data = JSON.parse(localStorage.getItem('predictionData'));
+            if (!data || !data.length) {
+                alert('No prediction data available');
+                return;
+            }
+
+            // Add status and dates to restock data
+            const enrichedData = data.map(item => ({
+                ...item,
+                status: 'pending',
+                confirmationDate: new Date().toISOString(),
+                restockDate: item.restockDate || new Date(Date.now() + (item.daysUntilRestock * 86400000)).toISOString()
+            }));
+
+            // Send message to parent window
+            window.opener.postMessage({
+                type: 'confirmRestock',
+                data: enrichedData
+            }, '*');
+            
+            alert('Restock predictions have been saved. You can view them in the Pending Restocks section.');
+            window.close();
+        }
+    </script>
+</body>
+</html>
