@@ -133,7 +133,7 @@ MIT License
 
 ## 👤 Author
 
-- **Name:** [Sidhant Kaistha]
-- **Email:** [sidhantkaistha2004@gmail.com]
+- **Name:** Sidhant Kaistha
+- **Email:** sidhantkaistha2004@gmail.com
 
 --- 
