@@ -101,13 +101,8 @@ Projects-main/
 
 ## 💡 Screenshots
 
-> _Add screenshots of your dashboard, analytics, and prediction results here for extra visual appeal!_
+<img width="1914" height="995" alt="image" src="https://github.com/user-attachments/assets/7f17b2ac-0b62-45b6-a3d9-34d1e9668387" />
 
----
-
-## 🤝 Contributing
-
-Pull requests and suggestions are welcome! For major changes, please open an issue first to discuss what you would like to change.
 
 ---
 
